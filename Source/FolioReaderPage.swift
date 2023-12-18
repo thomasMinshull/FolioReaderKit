@@ -8,6 +8,7 @@
 
 import UIKit
 import SafariServices
+import WebKit
 import MenuItemKit
 
 /// Protocol which is used from `FolioReaderPage`s.
@@ -78,15 +79,18 @@ open class FolioReaderPage: UICollectionViewCell, UIWebViewDelegate, UIGestureRe
         guard let readerContainer = self.readerContainer else { return }
 
         if webView == nil {
-            webView = FolioReaderWebView(frame: webViewFrame(), readerContainer: readerContainer)
+          let webViewConfig = WKWebViewConfiguration()
+          webViewConfig.dataDetectorTypes = .link
+          webView = FolioReaderWebView(frame: webViewFrame(),
+                                       readerContainer: readerContainer,
+                                       webViewConfiguration: webViewConfig)
             webView?.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-            webView?.dataDetectorTypes = .link
             webView?.scrollView.showsVerticalScrollIndicator = false
             webView?.scrollView.showsHorizontalScrollIndicator = false
             webView?.backgroundColor = .clear
             self.contentView.addSubview(webView!)
         }
-        webView?.delegate = self
+//        webView?.delegate = self
 
         if colorView == nil {
             colorView = UIView()
@@ -110,7 +114,7 @@ open class FolioReaderPage: UICollectionViewCell, UIWebViewDelegate, UIGestureRe
 
     deinit {
         webView?.scrollView.delegate = nil
-        webView?.delegate = nil
+//        webView?.delegate = nil
         NotificationCenter.default.removeObserver(self)
     }
 
@@ -512,10 +516,10 @@ open class FolioReaderPage: UICollectionViewCell, UIWebViewDelegate, UIGestureRe
         if (self.folioReader.nightMode == true) {
             // omit create webView and colorView
             let script = "document.documentElement.offsetHeight"
-            let contentHeight = webView.stringByEvaluatingJavaScript(from: script)
+//            let contentHeight = webView.stringByEvaluatingJavaScript(from: script)
             let frameHeight = webView.frame.height
-            let lastPageHeight = frameHeight * CGFloat(webView.pageCount) - CGFloat(Double(contentHeight!)!)
-            colorView.frame = CGRect(x: webView.frame.width * CGFloat(webView.pageCount-1), y: webView.frame.height - lastPageHeight, width: webView.frame.width, height: lastPageHeight)
+//            let lastPageHeight = frameHeight * CGFloat(webView.pageCount) - CGFloat(Double(contentHeight!)!)
+//            colorView.frame = CGRect(x: webView.frame.width * CGFloat(webView.pageCount-1), y: webView.frame.height - lastPageHeight, width: webView.frame.width, height: lastPageHeight)
         } else {
             colorView.frame = CGRect.zero
         }
