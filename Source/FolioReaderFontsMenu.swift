@@ -142,7 +142,8 @@ class FolioReaderFontsMenu: UIViewController, SMSegmentViewDelegate, UIGestureRe
         dayNight.tag = 1
         dayNight.addSegmentWithTitle(self.readerConfig.localizedFontMenuDay, onSelectionImage: sunSelected, offSelectionImage: sunNormal)
         dayNight.addSegmentWithTitle(self.readerConfig.localizedFontMenuNight, onSelectionImage: moonSelected, offSelectionImage: moonNormal)
-        dayNight.selectSegmentAtIndex(self.folioReader.nightMode ? 1 : 0)
+//        dayNight.selectSegmentAtIndex(self.folioReader.nightMode ? 1 : 0)
+      dayNight.selectSegmentAtIndex(0)
         menuView.addSubview(dayNight)
 
 
@@ -276,11 +277,11 @@ class FolioReaderFontsMenu: UIViewController, SMSegmentViewDelegate, UIGestureRe
 
         if segmentView.tag == 1 {
 
-            self.folioReader.nightMode = Bool(index == 1)
+//            self.folioReader.nightMode = Bool(index == 1) // refactor to handle "night mode"
 
-            UIView.animate(withDuration: 0.6, animations: {
-                self.menuView.backgroundColor = (self.folioReader.nightMode ? self.readerConfig.nightModeBackground : self.readerConfig.daysModeNavBackground)
-            })
+//            UIView.animate(withDuration: 0.6, animations: {
+//                self.menuView.backgroundColor = (self.folioReader.nightMode ? self.readerConfig.nightModeBackground : self.readerConfig.daysModeNavBackground)
+//            })
 
         } else if segmentView.tag == 2 {
 

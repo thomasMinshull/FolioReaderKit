@@ -13,7 +13,7 @@ import WebKit
 open class FolioReaderWebView: WKWebView {
     var isColors = false
     var isShare = false
-    var isOneWord = false
+//    var isOneWord = false
 
     fileprivate weak var readerContainer: FolioReaderContainer?
 
@@ -59,7 +59,7 @@ open class FolioReaderWebView: WKWebView {
             if action == #selector(highlight(_:))
                 || action == #selector(highlightWithNote(_:))
                 || action == #selector(updateHighlightNote(_:))
-                || (action == #selector(define(_:)) && isOneWord)
+//                || (action == #selector(define(_:)) && isOneWord)
                 || (action == #selector(play(_:)) && (book.hasAudio || readerConfig.enableTTS))
                 || (action == #selector(share(_:)) && readerConfig.allowSharing)
                 || (action == #selector(copy(_:)) && readerConfig.allowSharing) {
@@ -75,29 +75,36 @@ open class FolioReaderWebView: WKWebView {
         let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
 
         let shareImage = UIAlertAction(title: self.readerConfig.localizedShareImageQuote, style: .default, handler: { (action) -> Void in
+          Task {
             if self.isShare {
-                if let textToShare = self.js("getHighlightContent()") {
-                    self.folioReader.readerCenter?.presentQuoteShare(textToShare)
-                }
+              if let textToShare = await self.js("getHighlightContent()") {
+                self.folioReader.readerCenter?.presentQuoteShare(textToShare)
+              }
             } else {
-                if let textToShare = self.js("getSelectedText()") {
-                    self.folioReader.readerCenter?.presentQuoteShare(textToShare)
+              if let textToShare = await self.js("getSelectedText()") {
+                self.folioReader.readerCenter?.presentQuoteShare(textToShare)
 
-                    self.clearTextSelection()
-                }
+                self.clearTextSelection()
+              }
             }
+          }
+
             self.setMenuVisible(false)
         })
 
         let shareText = UIAlertAction(title: self.readerConfig.localizedShareTextQuote, style: .default) { (action) -> Void in
             if self.isShare {
-                if let textToShare = self.js("getHighlightContent()") {
-                    self.folioReader.readerCenter?.shareHighlight(textToShare, rect: sender.menuFrame)
+              Task {
+                if let textToShare = await self.js("getHighlightContent()") {
+                  self.folioReader.readerCenter?.shareHighlight(textToShare, rect: sender.menuFrame)
                 }
+              }
             } else {
-                if let textToShare = self.js("getSelectedText()") {
-                    self.folioReader.readerCenter?.shareHighlight(textToShare, rect: sender.menuFrame)
+              Task {
+                if let textToShare = await self.js("getSelectedText()") {
+                  self.folioReader.readerCenter?.shareHighlight(textToShare, rect: sender.menuFrame)
                 }
+              }
             }
             self.setMenuVisible(false)
         }
@@ -116,21 +123,30 @@ open class FolioReaderWebView: WKWebView {
         self.folioReader.readerCenter?.present(alertController, animated: true, completion: nil)
     }
 
-    func colors(_ sender: UIMenuController?) {
+  func colors(_ sender: UIMenuController?) {
         isColors = true
-        createMenu(options: false)
+    createMenu(options: false)
         setMenuVisible(true)
     }
 
-    func remove(_ sender: UIMenuController?) {
-        if let removedId = js("removeThisHighlight()") {
-            Highlight.removeById(withConfiguration: self.readerConfig, highlightId: removedId)
-        }
-        setMenuVisible(false)
+  func remove(_ sender: UIMenuController?) {
+    evaluateJavaScript("removeThisHighlight()") { result, error in
+      guard error == nil else {
+        print("Error: \(error)")
+        return
+      }
+      
+      guard let removedId = result as? String else {
+        return
+      }
+
+      Highlight.removeById(withConfiguration: self.readerConfig, highlightId: removedId)
+      self.setMenuVisible(false)
+    }
     }
 
-    @objc func highlight(_ sender: UIMenuController?) {
-        let highlightAndReturn = js("highlightString('\(HighlightStyle.classForStyle(self.folioReader.currentHighlightStyle))')")
+  @objc func highlight(_ sender: UIMenuController?) async {
+    let highlightAndReturn = await js("highlightString('\(HighlightStyle.classForStyle(self.folioReader.currentHighlightStyle))')")
         let jsonData = highlightAndReturn?.data(using: String.Encoding.utf8)
 
         do {
@@ -144,12 +160,12 @@ open class FolioReaderWebView: WKWebView {
                 return
             }
 
-            createMenu(options: true)
+          await createMenu(options: true)
             setMenuVisible(true, andRect: rect)
 
             // Persist
             guard
-                let html = js("getHTML()"),
+              let html = await js("getHTML()"),
                 let identifier = dic["id"],
                 let bookId = (self.book.name as NSString?)?.deletingPathExtension else {
                     return
@@ -165,8 +181,8 @@ open class FolioReaderWebView: WKWebView {
         }
     }
     
-    @objc func highlightWithNote(_ sender: UIMenuController?) {
-        let highlightAndReturn = js("highlightStringWithNote('\(HighlightStyle.classForStyle(self.folioReader.currentHighlightStyle))')")
+  @objc func highlightWithNote(_ sender: UIMenuController?) async {
+    let highlightAndReturn = await js("highlightStringWithNote('\(HighlightStyle.classForStyle(self.folioReader.currentHighlightStyle))')")
         let jsonData = highlightAndReturn?.data(using: String.Encoding.utf8)
         
         do {
@@ -177,7 +193,7 @@ open class FolioReaderWebView: WKWebView {
             
             self.clearTextSelection()
             
-            guard let html = js("getHTML()") else { return }
+          guard let html = await js("getHTML()") else { return }
             guard let identifier = dic["id"] else { return }
             guard let bookId = (self.book.name as NSString?)?.deletingPathExtension else { return }
             
@@ -191,14 +207,14 @@ open class FolioReaderWebView: WKWebView {
         }
     }
     
-    @objc func updateHighlightNote (_ sender: UIMenuController?) {
-        guard let highlightId = js("getHighlightId()") else { return }
+  @objc func updateHighlightNote (_ sender: UIMenuController?) async {
+    guard let highlightId = await js("getHighlightId()") else { return }
         guard let highlightNote = Highlight.getById(withConfiguration: readerConfig, highlightId: highlightId) else { return }
         self.folioReader.readerCenter?.presentAddHighlightNote(highlightNote, edit: true)
     }
 
-    @objc func define(_ sender: UIMenuController?) {
-        guard let selectedText = js("getSelectedText()") else {
+  @objc func define(_ sender: UIMenuController?) async {
+    guard let selectedText = await js("getSelectedText()") else {
             return
         }
 
@@ -217,33 +233,42 @@ open class FolioReaderWebView: WKWebView {
         self.clearTextSelection()
     }
 
-    func setYellow(_ sender: UIMenuController?) {
-        changeHighlightStyle(sender, style: .yellow)
+  func setYellow(_ sender: UIMenuController?) {
+    changeHighlightStyle(sender, style: .yellow)
     }
 
-    func setGreen(_ sender: UIMenuController?) {
-        changeHighlightStyle(sender, style: .green)
+  func setGreen(_ sender: UIMenuController?) {
+    changeHighlightStyle(sender, style: .green)
     }
 
-    func setBlue(_ sender: UIMenuController?) {
-        changeHighlightStyle(sender, style: .blue)
+  func setBlue(_ sender: UIMenuController?) {
+    changeHighlightStyle(sender, style: .blue)
     }
 
-    func setPink(_ sender: UIMenuController?) {
-        changeHighlightStyle(sender, style: .pink)
+  func setPink(_ sender: UIMenuController?) {
+    changeHighlightStyle(sender, style: .pink)
     }
 
-    func setUnderline(_ sender: UIMenuController?) {
-        changeHighlightStyle(sender, style: .underline)
+  func setUnderline(_ sender: UIMenuController?) {
+    changeHighlightStyle(sender, style: .underline)
     }
 
-    func changeHighlightStyle(_ sender: UIMenuController?, style: HighlightStyle) {
+  func changeHighlightStyle(_ sender: UIMenuController?, style: HighlightStyle) {
         self.folioReader.currentHighlightStyle = style.rawValue
 
-        if let updateId = js("setHighlightStyle('\(HighlightStyle.classForStyle(style.rawValue))')") {
-            Highlight.updateById(withConfiguration: self.readerConfig, highlightId: updateId, type: style)
-        }
-        
+    evaluateJavaScript("setHighlightStyle('\(HighlightStyle.classForStyle(style.rawValue))')") { result, error in
+      guard error == nil else {
+        print("Error: \(error)")
+        return
+      }
+
+      guard let updateId = result as? String else {
+        return
+      }
+
+      Highlight.updateById(withConfiguration: self.readerConfig, highlightId: updateId, type: style)
+    }
+
         //FIX: https://github.com/FolioReader/FolioReaderKit/issues/316
         setMenuVisible(false)
     }
@@ -289,13 +314,13 @@ open class FolioReaderWebView: WKWebView {
             self?.setGreen(menuController)
         }
         let blueItem = UIMenuItem(title: "B", image: blue) { [weak self] _ in
-            self?.setBlue(menuController)
+          self?.setBlue(menuController)
         }
         let pinkItem = UIMenuItem(title: "P", image: pink) { [weak self] _ in
-            self?.setPink(menuController)
+          self?.setPink(menuController)
         }
         let underlineItem = UIMenuItem(title: "U", image: underline) { [weak self] _ in
-            self?.setUnderline(menuController)
+          self?.setUnderline(menuController)
         }
 
         var menuItems: [UIMenuItem] = []
@@ -345,11 +370,12 @@ open class FolioReaderWebView: WKWebView {
     
     // MARK: - Java Script Bridge
     
-    @discardableResult open func js(_ script: String) -> String? {
-//        let callback = self.stringByEvaluatingJavaScript(from: script)
-//        if callback!.isEmpty { return nil }
-//        return callback
-      return nil
+  @discardableResult open func js(_ script: String) async -> String? {
+        let callback = await self.stringByEvaluatingJavaScript(from: script)
+      guard callback?.isEmpty == false else {
+        return nil
+      }
+        return callback
     }
     
     // MARK: WebView

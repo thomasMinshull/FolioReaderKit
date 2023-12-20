@@ -95,7 +95,14 @@ class FolioReaderPageIndicator: UIView {
             pagesLabel.text = " \(pagesRemaining) " + self.readerConfig.localizedReaderManyPagesLeft
         }
 
-        let minutesRemaining = Int(ceil(CGFloat((pagesRemaining * totalMinutes)/totalPages)))
+      let minutesRemaining: Int
+
+      if totalPages != 0 {
+        minutesRemaining = Int(ceil(CGFloat((pagesRemaining * totalMinutes)/totalPages)))
+      } else {
+        minutesRemaining = 1
+      }
+
         if minutesRemaining > 1 {
             minutesLabel.text = "\(minutesRemaining) " + self.readerConfig.localizedReaderManyMinutes+" ·"
         } else if minutesRemaining == 1 {
@@ -111,9 +118,10 @@ class FolioReaderPageIndicator: UIView {
 extension FolioReaderPageIndicator: CAAnimationDelegate {
     func animationDidStop(_ anim: CAAnimation, finished flag: Bool) {
         // Set the shadow color to the final value of the animation is done
-        if let keyPath = anim.value(forKeyPath: "keyPath") as? String , keyPath == "shadowColor" {
-            let color = self.folioReader.isNight(self.readerConfig.nightModeBackground, UIColor.white)
-            layer.shadowColor = color.cgColor
-        }
+//        if let keyPath = anim.value(forKeyPath: "keyPath") as? String , keyPath == "shadowColor" {
+//            let color = self.folioReader.isNight(self.readerConfig.nightModeBackground, UIColor.white)
+//            layer.shadowColor = color.cgColor
+//        }
+      print("animationDidStop called")
     }
 }

@@ -156,7 +156,7 @@ extension FolioReader {
     /// - Parameters:
     ///   - parentViewController: View Controller that will present the reader container.
     ///   - epubPath: String representing the path on the disk of the ePub file. Must not be nil nor empty string.
-	///   - unzipPath: Path to unzip the compressed epub.
+	  ///   - unzipPath: Path to unzip the compressed epub.
     ///   - config: FolioReader configuration.
     ///   - shouldRemoveEpub: Boolean to remove the epub or not. Default true.
     ///   - animated: Pass true to animate the presentation; otherwise, pass false.
@@ -184,15 +184,19 @@ extension FolioReader {
             self.defaults.set(value, forKey: kNightMode)
 
             if let readerCenter = self.readerCenter {
-                UIView.animate(withDuration: 0.6, animations: {
-                    _ = readerCenter.currentPage?.webView?.js("nightMode(\(self.nightMode))")
-                    readerCenter.pageIndicatorView?.reloadColors()
-                    readerCenter.configureNavBar()
-                    readerCenter.scrollScrubber?.reloadColors()
-                    readerCenter.collectionView.backgroundColor = (self.nightMode == true ? self.readerContainer?.readerConfig.nightModeBackground : UIColor.white)
+              Task {
+                _ = await readerCenter.currentPage?.webView?.js("nightMode(\(self.nightMode))")
+
+                await UIView.animate(withDuration: 0.6, animations: {
+                  readerCenter.pageIndicatorView?.reloadColors()
+                  readerCenter.configureNavBar()
+                  readerCenter.scrollScrubber?.reloadColors()
+                  readerCenter.collectionView.backgroundColor = (self.nightMode == true ? self.readerContainer?.readerConfig.nightModeBackground : UIColor.white)
                 }, completion: { (finished: Bool) in
-                    NotificationCenter.default.post(name: Notification.Name(rawValue: "needRefreshPageMode"), object: nil)
+                  NotificationCenter.default.post(name: Notification.Name(rawValue: "needRefreshPageMode"), object: nil)
                 })
+              }
+
             }
         }
     }
@@ -210,7 +214,9 @@ extension FolioReader {
         }
         set (font) {
             self.defaults.set(font.rawValue, forKey: kCurrentFontFamily)
-            _ = self.readerCenter?.currentPage?.webView?.js("setFontName('\(font.cssIdentifier)')")
+          Task {
+            _ = await self.readerCenter?.currentPage?.webView?.js("setFontName('\(font.cssIdentifier)')")
+          }
         }
     }
 
@@ -231,8 +237,9 @@ extension FolioReader {
             guard let currentPage = self.readerCenter?.currentPage else {
                 return
             }
-
-            currentPage.webView?.js("setFontSize('\(currentFontSize.cssIdentifier)')")
+          Task {
+            await currentPage.webView?.js("setFontSize('\(currentFontSize.cssIdentifier)')")
+          }
         }
     }
 

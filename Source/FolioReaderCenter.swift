@@ -482,9 +482,9 @@ open class FolioReaderCenter: UIViewController, UICollectionViewDelegate, UIColl
         classes += " " + folioReader.currentMediaOverlayStyle.className()
 
         // Night mode
-        if folioReader.nightMode {
-            classes += " nightMode"
-        }
+//        if folioReader.nightMode { // ToDo handle "night Mode"
+//            classes += " nightMode"
+//        }
 
         // Font Size
         classes += " \(folioReader.currentFontSize.cssIdentifier)"
@@ -573,7 +573,7 @@ open class FolioReaderCenter: UIViewController, UICollectionViewDelegate, UIColl
 
         // Update pages
         pagesForCurrentPage(currentPage)
-        currentPage.refreshPageMode()
+//        currentPage.refreshPageMode()
 
         scrollScrubber?.setSliderVal()
 
@@ -649,11 +649,13 @@ open class FolioReaderCenter: UIViewController, UICollectionViewDelegate, UIColl
 
         scrollScrubber?.setSliderVal()
 
-        if let readingTime = currentPage.webView?.js("getReadingTime()") {
-            pageIndicatorView?.totalMinutes = Int(readingTime)!
-        } else {
-            pageIndicatorView?.totalMinutes = 0
-        }
+//        if let readingTime = currentPage.webView?.js("getReadingTime()") {
+//            pageIndicatorView?.totalMinutes = Int(readingTime)!
+//        } else {
+//            pageIndicatorView?.totalMinutes = 0
+//        }
+      pageIndicatorView?.totalMinutes = 0 // ToDo update to handle properly (aysnc)
+
         pagesForCurrentPage(currentPage)
 
         delegate?.pageDidAppear?(currentPage)
@@ -722,19 +724,22 @@ open class FolioReaderCenter: UIViewController, UICollectionViewDelegate, UIColl
     }
 
     open func changePageWith(page: Int, andFragment fragment: String, animated: Bool = false, completion: (() -> Void)? = nil) {
+      Task {
         if (self.currentPageNumber == page) {
-            if let currentPage = currentPage , fragment != "" {
-                currentPage.handleAnchor(fragment, avoidBeginningAnchors: true, animated: animated)
-            }
-            completion?()
+          if let currentPage = currentPage , fragment != "" {
+            await currentPage.handleAnchor(fragment, avoidBeginningAnchors: true, animated: animated)
+          }
+          completion?()
         } else {
-            tempFragment = fragment
-            changePageWith(page: page, animated: animated, completion: { () -> Void in
-                self.updateCurrentPage {
-                    completion?()
-                }
-            })
+          tempFragment = fragment
+          changePageWith(page: page, animated: animated, completion: { () -> Void in
+            self.updateCurrentPage {
+              completion?()
+            }
+          })
         }
+      }
+
     }
 
     open func changePageWith(href: String, animated: Bool = false, completion: (() -> Void)? = nil) {
@@ -1073,9 +1078,10 @@ open class FolioReaderCenter: UIViewController, UICollectionViewDelegate, UIColl
      Sharing chapter method.
      */
     @objc func shareChapter(_ sender: UIBarButtonItem) {
+      Task {
         guard let currentPage = currentPage else { return }
 
-        if let chapterText = currentPage.webView?.js("getBodyText()") {
+        if let chapterText = await currentPage.webView?.js("getBodyText()") {
             let htmlText = chapterText.replacingOccurrences(of: "[\\n\\r]+", with: "<br />", options: .regularExpression)
             var subject = readerConfig.localizedShareChapterSubject
             var html = ""
@@ -1128,6 +1134,7 @@ open class FolioReaderCenter: UIViewController, UICollectionViewDelegate, UIColl
             }
 
             present(activityViewController, animated: true, completion: nil)
+        }
         }
     }
 
@@ -1440,8 +1447,10 @@ extension FolioReaderCenter: FolioReaderPageDelegate {
 
         // Go to fragment if needed
         if let fragmentID = tempFragment, let currentPage = currentPage , fragmentID != "" {
-            currentPage.handleAnchor(fragmentID, avoidBeginningAnchors: true, animated: true)
+          Task {
+            await currentPage.handleAnchor(fragmentID, avoidBeginningAnchors: true, animated: true)
             tempFragment = nil
+          }
         }
         
         if (readerConfig.scrollDirection == .horizontalWithVerticalContent),
@@ -1488,10 +1497,12 @@ extension FolioReaderCenter: FolioReaderChapterListDelegate {
         
         // Move to #fragment
         if let reference = tempReference {
+          Task {
             if let fragmentID = reference.fragmentID, let currentPage = currentPage , fragmentID != "" {
-                currentPage.handleAnchor(reference.fragmentID!, avoidBeginningAnchors: true, animated: true)
+              await currentPage.handleAnchor(reference.fragmentID!, avoidBeginningAnchors: true, animated: true)
             }
             tempReference = nil
+          }
         }
     }
     

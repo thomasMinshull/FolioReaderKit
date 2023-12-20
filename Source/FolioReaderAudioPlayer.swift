@@ -176,7 +176,10 @@ open class FolioReaderAudioPlayer: NSObject {
     @objc func play() {
         if book.hasAudio {
             guard let currentPage = self.folioReader.readerCenter?.currentPage else { return }
-            currentPage.webView?.js("playAudio()")
+          let webView = currentPage.webView
+          Task {
+            await webView?.js("playAudio()")
+          }
         } else {
             self.readCurrentSentence()
         }
@@ -382,22 +385,25 @@ open class FolioReaderAudioPlayer: NSObject {
         }
 
         let playbackActiveClass = book.playbackActiveClass
-        guard let sentence = currentPage.webView?.js("getSentenceWithIndex('\(playbackActiveClass)')") else {
-            if (readerCenter.isLastPage() == true) {
-                self.stop()
-            } else {
-                readerCenter.changePageToNext()
-            }
 
-            return
+      Task {
+        guard let sentence = await currentPage.webView?.js("getSentenceWithIndex('\(playbackActiveClass)')") else {
+          if await (readerCenter.isLastPage() == true) {
+            self.stop()
+          } else {
+            await readerCenter.changePageToNext()
+          }
+
+          return
         }
 
-        guard let href = readerCenter.getCurrentChapter()?.href else {
-            return
+        guard let href = await readerCenter.getCurrentChapter()?.href else {
+          return
         }
 
         // TODO QUESTION: The previous code made it possible to call `playText` with the parameter `href` being an empty string. Was that valid? should this logic be kept?
         self.playText(href, text: sentence)
+      }
     }
 
     func readCurrentSentence() {
@@ -409,10 +415,12 @@ open class FolioReaderAudioPlayer: NSObject {
         } else {
             if synthesizer.isSpeaking {
                 stopSynthesizer(immediate: false, completion: {
-                    if let currentPage = self.folioReader.readerCenter?.currentPage {
-                        currentPage.webView?.js("resetCurrentSentenceIndex()")
+                  Task {
+                    if let currentPage = await self.folioReader.readerCenter?.currentPage {
+                      await currentPage.webView?.js("resetCurrentSentenceIndex()")
                     }
                     self.speakSentence()
+                  }
                 })
             } else {
                 speakSentence()

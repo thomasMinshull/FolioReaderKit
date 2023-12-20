@@ -8,6 +8,7 @@
 
 import UIKit
 import FolioReaderKit
+import RealmSwift
 
 class ViewController: UIViewController {
 
@@ -31,17 +32,18 @@ class ViewController: UIViewController {
         config.scrollDirection = epub.scrollDirection
 
         // See more at FolioReaderConfig.swift
-//        config.canChangeScrollDirection = false
-//        config.enableTTS = false
-//        config.displayTitle = true
-//        config.allowSharing = false
-//        config.tintColor = UIColor.blueColor()
-//        config.toolBarTintColor = UIColor.redColor()
-//        config.toolBarBackgroundColor = UIColor.purpleColor()
-//        config.menuTextColor = UIColor.brownColor()
-//        config.menuBackgroundColor = UIColor.lightGrayColor()
-//        config.hidePageIndicator = true
-//        config.realmConfiguration = Realm.Configuration(fileURL: FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("highlights.realm"))
+        config.canChangeScrollDirection = false
+        config.enableTTS = false
+        config.displayTitle = true
+        config.allowSharing = false
+        config.tintColor = UIColor.blue
+
+//        config.toolBarTintColor = UIColor.red
+//        config.toolBarBackgroundColor = UIColor.purple
+        config.menuTextColor = UIColor.brown
+        config.menuBackgroundColor = UIColor.lightGray
+        config.hidePageIndicator = true
+        config.realmConfiguration = Realm.Configuration(fileURL: FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("highlights.realm"))
 
         // Custom sharing quote background
         config.quoteCustomBackgrounds = []
